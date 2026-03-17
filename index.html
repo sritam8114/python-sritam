@@ -1,0 +1,415 @@
+<style>
+    :root {
+        --bg-center: #f5f2eb;
+        --bg-edge: #d6d0c4;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: var(--bg-edge); 
+        background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%);
+        transition: background 1.5s ease;
+    }
+    canvas {
+        display: block;
+    }
+    #info {
+        position: absolute;
+        top: 15px;
+        width: 100%;
+        text-align: center;
+        color: #333333;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 13px;
+        letter-spacing: 2px;
+        pointer-events: none;
+        opacity: 0.7;
+        transition: color 1.5s ease;
+        text-transform: uppercase;
+    }
+    #theme-toggle {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        padding: 12px 28px;
+        background: rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        border-radius: 30px;
+        color: #333333;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 13px;
+        letter-spacing: 1px;
+        font-weight: 600;
+        cursor: pointer;
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 100;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        text-transform: uppercase;
+    }
+    #theme-toggle:hover {
+        background: rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        border-color: rgba(0, 0, 0, 0.4);
+    }
+</style>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+</script>
+
+<button id="theme-toggle">Obsidian Amber</button>
+<div id="info">Drag to rotate • Scroll to zoom</div> 
+    
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const PARTICLE_COUNT = 1800;
+    const TORUS_RADIUS = 15;     
+    const TUBE_RADIUS = 3.5;
+    const BASE_PARTICLE_SIZE = 0.7;
+    const FLOW_SPEED = 0.8;      
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0xd6d0c4, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, -12, 55); 
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.04;
+    controls.minDistance = 15;
+    controls.maxDistance = 70;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 1.0; 
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(15, 25, 10);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.bias = -0.0005;
+    scene.add(directionalLight);
+
+    const backLight = new THREE.DirectionalLight(0x88aaff, 1.0);
+    backLight.position.set(-15, -20, -15);
+    scene.add(backLight);
+    
+    const fillLight = new THREE.DirectionalLight(0xffeedd, 0.5);
+    fillLight.position.set(0, 20, 0);
+    scene.add(fillLight);
+
+    const glowLight = new THREE.PointLight(0xff5500, 1000, 25);
+    scene.add(glowLight);
+
+    const themes = [
+        {
+            name: "Obsidian Amber",
+            bgCenter: "#f5f2eb",    
+            bgEdge: "#d6d0c4",      
+            fog: 0xd6d0c4,
+            rock: 0x222222,         
+            gem: 0x882b00,          
+            attenuation: 0xff6600,  
+            gemEmissive: 0x330d00,  
+            glowLight: 0xff4400,
+            textColor: "#333333",
+            btnBg: "rgba(0, 0, 0, 0.05)",
+            btnBorder: "rgba(0, 0, 0, 0.2)",
+            btnHover: "rgba(0, 0, 0, 0.1)"
+        },
+        {
+            name: "Deep Sapphire",
+            bgCenter: "#eef2f7",    
+            bgEdge: "#cbd4df",
+            fog: 0xcbd4df,
+            rock: 0x1f232b,         
+            gem: 0x002b88,          
+            attenuation: 0x0088ff,  
+            gemEmissive: 0x000d33,
+            glowLight: 0x0088ff,
+            textColor: "#2a3545",
+            btnBg: "rgba(0, 20, 50, 0.05)",
+            btnBorder: "rgba(0, 20, 50, 0.2)",
+            btnHover: "rgba(0, 20, 50, 0.1)"
+        },
+        {
+            name: "Dark Emerald",
+            bgCenter: "#f0f5f1",    
+            bgEdge: "#ccd9cf",
+            fog: 0xccd9cf,
+            rock: 0x202b23,         
+            gem: 0x004d1a,          
+            attenuation: 0x00ff66,  
+            gemEmissive: 0x001a08,
+            glowLight: 0x00ff66,
+            textColor: "#27382b",
+            btnBg: "rgba(0, 50, 20, 0.05)",
+            btnBorder: "rgba(0, 50, 20, 0.2)",
+            btnHover: "rgba(0, 50, 20, 0.1)"
+        }
+    ];
+    
+    let currentThemeIndex = 0;
+    const targetColors = {
+        fog: new THREE.Color(themes[0].fog),
+        rock: new THREE.Color(themes[0].rock),
+        gem: new THREE.Color(themes[0].gem),
+        attenuation: new THREE.Color(themes[0].attenuation),
+        gemEmissive: new THREE.Color(themes[0].gemEmissive),
+        glowLight: new THREE.Color(themes[0].glowLight)
+    };
+    
+    const toggleBtn = document.getElementById('theme-toggle');
+    const infoText = document.getElementById('info');
+    
+    toggleBtn.addEventListener('mouseenter', () => {
+        toggleBtn.style.background = themes[currentThemeIndex].btnHover;
+        toggleBtn.style.borderColor = themes[currentThemeIndex].btnBorder.replace('0.3', '0.6');
+    });
+    toggleBtn.addEventListener('mouseleave', () => {
+        toggleBtn.style.background = themes[currentThemeIndex].btnBg;
+        toggleBtn.style.borderColor = themes[currentThemeIndex].btnBorder;
+    });
+
+    toggleBtn.addEventListener('click', () => {
+        currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+        const t = themes[currentThemeIndex];
+        
+        toggleBtn.textContent = t.name;
+        toggleBtn.style.color = t.textColor;
+        toggleBtn.style.background = t.btnBg;
+        toggleBtn.style.borderColor = t.btnBorder;
+        infoText.style.color = t.textColor;
+        
+        document.documentElement.style.setProperty('--bg-center', t.bgCenter);
+        document.documentElement.style.setProperty('--bg-edge', t.bgEdge);
+        
+        targetColors.fog.setHex(t.fog);
+        targetColors.rock.setHex(t.rock);
+        targetColors.gem.setHex(t.gem);
+        targetColors.attenuation.setHex(t.attenuation);
+        targetColors.gemEmissive.setHex(t.gemEmissive);
+        targetColors.glowLight.setHex(t.glowLight);
+    });
+
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    
+    const envScene = new THREE.Scene();
+    envScene.background = new THREE.Color(0x020202); 
+
+    const lightMat = new THREE.MeshBasicMaterial({color: 0xffffff});
+    
+    const panel1 = new THREE.Mesh(new THREE.PlaneGeometry(30, 60), lightMat);
+    panel1.position.set(30, 20, -30);
+    panel1.lookAt(0,0,0);
+    envScene.add(panel1);
+
+    const panel2 = new THREE.Mesh(new THREE.PlaneGeometry(15, 45), lightMat);
+    panel2.position.set(-40, 10, 20);
+    panel2.lookAt(0,0,0);
+    envScene.add(panel2);
+
+    const panel3 = new THREE.Mesh(new THREE.PlaneGeometry(50, 10), new THREE.MeshBasicMaterial({color: 0x334455}));
+    panel3.position.set(0, -30, 0);
+    panel3.rotation.x = -Math.PI/2;
+    envScene.add(panel3);
+    
+    const envMap = pmremGenerator.fromScene(envScene).texture;
+
+    const rockGeometry = new THREE.IcosahedronGeometry(BASE_PARTICLE_SIZE, 0);
+    const rockMaterial = new THREE.MeshStandardMaterial({
+        color: themes[0].rock,
+        roughness: 0.4,  
+        metalness: 0.5,  
+        flatShading: true 
+    });
+
+    const gemGeometry = new THREE.SphereGeometry(BASE_PARTICLE_SIZE, 64, 64);
+    const gemMaterial = new THREE.MeshPhysicalMaterial({
+        color: themes[0].gem,             
+        emissive: themes[0].gemEmissive,  
+        emissiveIntensity: 1.5,           
+        roughness: 0.0,                   
+        metalness: 0.1,                   
+        transmission: 1.0,                
+        thickness: 2.0,                   
+        ior: 1.8,                         
+        clearcoat: 1.0,                   
+        clearcoatRoughness: 0.0,
+        attenuationColor: themes[0].attenuation, 
+        attenuationDistance: 4.0,         
+        envMap: envMap,
+        envMapIntensity: 1.5              
+    });
+
+    const rockMesh = new THREE.InstancedMesh(rockGeometry, rockMaterial, PARTICLE_COUNT);
+    rockMesh.castShadow = true;
+    rockMesh.receiveShadow = true;
+    scene.add(rockMesh);
+
+    const gemMesh = new THREE.InstancedMesh(gemGeometry, gemMaterial, PARTICLE_COUNT);
+    gemMesh.castShadow = true;
+    gemMesh.receiveShadow = true;
+    scene.add(gemMesh);
+
+    const particles = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const u = Math.random() * Math.PI * 2; 
+        const v = Math.random() * Math.PI * 2; 
+        
+        const randomRadius = Math.cbrt(Math.random()) * TUBE_RADIUS; 
+        
+        let x = (TORUS_RADIUS + randomRadius * Math.cos(v)) * Math.cos(u);
+        let y = (TORUS_RADIUS + randomRadius * Math.cos(v)) * Math.sin(u);
+        let z = randomRadius * Math.sin(v);
+
+        x += (Math.random() - 0.5) * 1.8;
+        y += (Math.random() - 0.5) * 1.8;
+        z += (Math.random() - 0.5) * 1.8;
+
+        const scaleX = 0.4 + Math.random() * 0.9;
+        const scaleY = 0.4 + Math.random() * 0.9;
+        const scaleZ = 0.4 + Math.random() * 0.9;
+
+        const rot = new THREE.Euler(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+            Math.random() * Math.PI
+        );
+
+        particles.push({
+            basePos: new THREE.Vector3(x, y, z),
+            u: u,
+            v: v,
+            scale: new THREE.Vector3(scaleX, scaleY, scaleZ),
+            rot: rot,
+            randomOffset: Math.random() * Math.PI * 2
+        });
+    }
+
+    const dummy = new THREE.Object3D();
+    const clock = new THREE.Clock();
+
+    function angleDistance(a, b) {
+        let d = Math.abs(a - b) % (Math.PI * 2);
+        return d > Math.PI ? (Math.PI * 2) - d : d;
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const time = clock.getElapsedTime();
+
+        scene.fog.color.lerp(targetColors.fog, 0.04);
+        rockMaterial.color.lerp(targetColors.rock, 0.04);
+        gemMaterial.color.lerp(targetColors.gem, 0.04);
+        gemMaterial.emissive.lerp(targetColors.gemEmissive, 0.04);
+        gemMaterial.attenuationColor.lerp(targetColors.attenuation, 0.04);
+        glowLight.color.lerp(targetColors.glowLight, 0.04);
+        
+        const flowAngle = (time * FLOW_SPEED) % (Math.PI * 2);
+        const zoneWidth = Math.PI * 0.35; 
+        
+        glowLight.position.x = TORUS_RADIUS * Math.cos(flowAngle);
+        glowLight.position.y = TORUS_RADIUS * Math.sin(flowAngle);
+        glowLight.position.z = 0;
+
+        let rockIndex = 0;
+        let gemIndex = 0;
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const p = particles[i];
+            
+            const boundaryNoise = Math.sin(p.v * 3.0 + time) * 0.15;
+            const distanceToFlow = angleDistance(p.u, flowAngle);
+            
+            dummy.rotation.copy(p.rot);
+
+            if (distanceToFlow < (zoneWidth + boundaryNoise)) {
+                let intensity = 1.0 - (distanceToFlow / zoneWidth);
+                intensity = Math.max(0, Math.min(1, intensity)); 
+                const easeIntensity = Math.pow(intensity, 2.0); 
+                
+                const tubeCenter = new THREE.Vector3(
+                    TORUS_RADIUS * Math.cos(p.u),
+                    TORUS_RADIUS * Math.sin(p.u),
+                    0
+                );
+                const outwardDir = new THREE.Vector3().copy(p.basePos).sub(tubeCenter).normalize();
+                
+                const bulgeAmount = easeIntensity * 3.0; 
+                const floatX = Math.sin(time * 2.5 + p.randomOffset * 10) * easeIntensity * 1.5;
+                const floatY = Math.cos(time * 2.2 + p.randomOffset * 20) * easeIntensity * 1.5;
+                const floatZ = Math.sin(time * 2.8 + p.randomOffset * 30) * easeIntensity * 1.5;
+                
+                dummy.position.copy(p.basePos)
+                    .add(outwardDir.multiplyScalar(bulgeAmount))
+                    .add(new THREE.Vector3(floatX, floatY, floatZ));
+                
+                const pulse = Math.sin(time * 5.0 + p.randomOffset) * 0.1;
+                const targetScale = 0.95 + pulse; 
+                
+                dummy.scale.x = THREE.MathUtils.lerp(p.scale.x, targetScale, intensity);
+                dummy.scale.y = THREE.MathUtils.lerp(p.scale.y, targetScale, intensity);
+                dummy.scale.z = THREE.MathUtils.lerp(p.scale.z, targetScale, intensity);
+                
+                dummy.rotation.x += time * 1.8 + p.randomOffset;
+                dummy.rotation.y += time * 2.2 + p.randomOffset;
+                dummy.updateMatrix();
+                gemMesh.setMatrixAt(gemIndex++, dummy.matrix);
+            } else {
+                const rockFloatX = Math.sin(time * 0.5 + p.randomOffset * 5) * 0.3;
+                const rockFloatY = Math.cos(time * 0.6 + p.randomOffset * 7) * 0.3;
+                const rockFloatZ = Math.sin(time * 0.4 + p.randomOffset * 9) * 0.3;
+                
+                dummy.position.copy(p.basePos).add(new THREE.Vector3(rockFloatX, rockFloatY, rockFloatZ));
+                dummy.scale.copy(p.scale);
+                
+                dummy.rotation.x += time * 0.15 + rockFloatX * 0.2;
+                dummy.rotation.y += time * 0.1 + rockFloatY * 0.2;
+                dummy.updateMatrix();
+                rockMesh.setMatrixAt(rockIndex++, dummy.matrix);
+            }
+        }
+
+        rockMesh.count = rockIndex;
+        gemMesh.count = gemIndex;
+        rockMesh.instanceMatrix.needsUpdate = true;
+        gemMesh.instanceMatrix.needsUpdate = true;
+
+        controls.update(); 
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+</script>
